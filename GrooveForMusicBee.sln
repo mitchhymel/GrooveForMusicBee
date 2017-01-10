@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrooveForMusicBee", "GrooveForMusicBee\GrooveForMusicBee.csproj", "{C997165B-617C-4D74-84D8-93A5434A8293}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrooveApiClient", "GrooveApiClient\GrooveApiClient.csproj", "{EFC538C3-4EF6-43B4-B49A-152E35563BDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrooveApiDataContract", "GrooveApiDataContract\GrooveApiDataContract.csproj", "{5850FDBC-1778-4107-A7DF-C3E331E4BA6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C997165B-617C-4D74-84D8-93A5434A8293}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C997165B-617C-4D74-84D8-93A5434A8293}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C997165B-617C-4D74-84D8-93A5434A8293}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C997165B-617C-4D74-84D8-93A5434A8293}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFC538C3-4EF6-43B4-B49A-152E35563BDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFC538C3-4EF6-43B4-B49A-152E35563BDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFC538C3-4EF6-43B4-B49A-152E35563BDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFC538C3-4EF6-43B4-B49A-152E35563BDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5850FDBC-1778-4107-A7DF-C3E331E4BA6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5850FDBC-1778-4107-A7DF-C3E331E4BA6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5850FDBC-1778-4107-A7DF-C3E331E4BA6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5850FDBC-1778-4107-A7DF-C3E331E4BA6E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
