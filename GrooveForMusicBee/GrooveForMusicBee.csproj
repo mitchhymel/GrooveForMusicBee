@@ -47,16 +47,6 @@
     <Compile Include="Plugin\TestCSharpDll.cs" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\GrooveApiClient\GrooveApiClient.csproj">
-      <Project>{efc538c3-4ef6-43b4-b49a-152e35563bda}</Project>
-      <Name>GrooveApiClient</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GrooveApiDataContract\GrooveApiDataContract.csproj">
-      <Project>{5850fdbc-1778-4107-a7df-c3e331e4ba6e}</Project>
-      <Name>GrooveApiDataContract</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

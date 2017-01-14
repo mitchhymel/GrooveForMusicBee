@@ -10,39 +10,35 @@ namespace Microsoft.Groove.Api.Client
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using DataContract.Authentication;
+
+    using Microsoft.Groove.Api.DataContract.AuthenticationDataContract;
 
     /// <summary>
-    /// Basic Azure Data Market (http://datamarket.azure.com/) authentication cache
+    /// Basic Microsoft Account Application authentication cache
     /// </summary>
-    public class AzureDataMarketAuthenticationCache : IDisposable
+    public class MicrosoftAccountAuthenticationCache
     {
         public class AccessToken
         {
             public string Token { get; set; }
-            public DateTimeOffset Expiration { get; set; }
+            public DateTime Expiration { get; set; }
         }
 
-        private readonly string _clientId;
-        private readonly string _clientSecret;
-        private AccessToken _token;
+        private readonly string clientId;
+        private readonly string clientSecret;
+        private AccessToken token;
 
-        private readonly AzureDataMarketAuthenticationClient _client = new AzureDataMarketAuthenticationClient();
+        private readonly MicrosoftAccountAuthenticationClient client = new MicrosoftAccountAuthenticationClient();
 
         /// <summary>
-        /// Cache an application's authentication token on Azure Data Market
+        /// Cache a Microsoft application's authentication token
         /// </summary>
         /// <param name="clientId">The application's client ID</param>
         /// <param name="clientSecret">The application's secret</param>
-        public AzureDataMarketAuthenticationCache(string clientId, string clientSecret)
+        public MicrosoftAccountAuthenticationCache(string clientId, string clientSecret)
         {
-            _clientId = clientId;
-            _clientSecret = clientSecret;
-        }
-
-        public void Dispose()
-        {
-            _client.Dispose();
+            this.clientId = clientId;
+            this.clientSecret = clientSecret;
         }
 
         /// <summary>
@@ -52,27 +48,25 @@ namespace Microsoft.Groove.Api.Client
         /// <returns></returns>
         public async Task<AccessToken> CheckAndRenewTokenAsync(CancellationToken cancellationToken)
         {
-            if (_token == null || _token.Expiration < DateTimeOffset.UtcNow)
+            if (token == null || token.Expiration < DateTime.UtcNow)
             {
                 // This is not thread safe. Unfortunately, portable class library requirements prevent use of
                 // asynchronous locking mechanisms. The risk here is authenticating multiple times in parallel
                 // which is bad from a performance standpoint but is transparent from a functional standpoint.
-                AzureDataMarketAuthenticationResponse authenticationResponse = await _client.AuthenticateAsync(
-                    _clientId, 
-                    _clientSecret, 
-                    cancellationToken);
-
+                MicrosoftAccountAuthenticationResponse authenticationResponse =
+                    await client.AuthenticateAsync(clientId, clientSecret, cancellationToken);
                 if (authenticationResponse != null)
                 {
-                    _token = new AccessToken
+                    token = new AccessToken
                     {
                         Token = authenticationResponse.AccessToken,
-                        Expiration = DateTimeOffset.UtcNow.AddSeconds(authenticationResponse.ExpiresIn)
+                        Expiration =
+                            DateTime.UtcNow.Add(TimeSpan.FromSeconds(Convert.ToDouble(authenticationResponse.ExpiresIn)))
                     };
                 }
             }
 
-            return _token;
+            return token;
         }
     }
 }
