@@ -22,5 +22,11 @@ namespace GrooveApiSample
         public string RefreshToken { get; set; }
         [DataMember(Name = "user_id")]
         public string UserId { get; set; }
+        public DateTime ExpirationDate { get; set; }
+
+        public bool IsExpired()
+        {
+            return System.DateTime.Now > ExpirationDate;
+        }
     }
 }

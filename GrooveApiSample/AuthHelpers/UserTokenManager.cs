@@ -14,6 +14,7 @@ using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
+using System.Configuration;
 
 namespace GrooveApiSample
 {
@@ -21,6 +22,7 @@ namespace GrooveApiSample
     {
         private const string OfflineAccessScope = "offline_access";
         private const string GrooveApiScope = "MicrosoftMediaServices.GrooveApiAccess";
+        private const string AuthTokenSettingsKey = "ida:AuthTokenJson";
 
         public AuthToken AuthToken { get; private set; }
         public bool UserIsSignedIn { get; private set; }
@@ -40,7 +42,7 @@ namespace GrooveApiSample
         /// <returns></returns>
         public async Task<bool> LoginAsync()
         {
-            if (AuthToken == null)
+            if (AuthToken == null || AuthToken.IsExpired())
             {
                 AuthToken = await GetUserTokenAsync();
             }
@@ -57,10 +59,12 @@ namespace GrooveApiSample
         /// <returns></returns>
         public async Task<string> GetUserAuthorizationHeaderAsync(bool forceRefresh = false)
         {
-            if (AuthToken == null)
+            if (AuthToken == null || AuthToken.IsExpired())
             {
                 AuthToken = await GetUserTokenAsync();
             }
+
+            UserIsSignedIn = AuthToken != null;
 
             return $"Bearer {AuthToken.Token}" ;
         }
@@ -73,7 +77,23 @@ namespace GrooveApiSample
         {
             AuthToken result = null;
 
-            if (this._authForm == null)
+            // Try to read Auth token from settings
+            string authJson = ConfigurationManager.AppSettings[AuthTokenSettingsKey];
+            if (!String.IsNullOrEmpty(authJson))
+            {
+                try
+                {
+                    result = JsonConvert.DeserializeObject<AuthToken>(authJson);
+                }
+                catch (JsonSerializationException ex)
+                {
+                    // continue
+                    result = null;
+                }
+            }
+
+            // start auth form to get token
+            if (result == null && this._authForm == null)
             {
                 string scopes = $"{GrooveApiScope} {OfflineAccessScope}";
                 string redirectUri = HttpUtility.UrlEncode("https://login.live.com/oauth20_desktop.srf");
@@ -86,19 +106,18 @@ namespace GrooveApiSample
                     AuthResult authResult = this._authForm.authResult;
                     CleanupAuthForm();
                     result = await ExchangeCodeForToken(authResult.AuthorizeCode);
+
+                    // save to configuration
+                    Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    configuration.AppSettings.Settings[AuthTokenSettingsKey].Value = JsonConvert.SerializeObject(result);
+                    configuration.Save();
+                    ConfigurationManager.RefreshSection("appSettings");
                 }
                 else
                 {
                     result = null;
                 }
-                
             }
-            else
-            {
-                this._authForm.Focus();
-            }
-
-            UserIsSignedIn = result != null;
 
             return result;
         }
@@ -131,6 +150,7 @@ namespace GrooveApiSample
             HttpResponseMessage postResponse = await client.PostAsync(tokenUrl, content);
             string result = await postResponse.Content.ReadAsStringAsync();
             AuthToken tokenResult = JsonConvert.DeserializeObject<AuthToken>(result);
+            tokenResult.ExpirationDate = new DateTime(System.DateTime.Now.Ticks + tokenResult.ExpiresIn);
 
             return tokenResult;
         }

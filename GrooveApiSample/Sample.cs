@@ -1,11 +1,13 @@
 ﻿using Microsoft.Groove.Api.Client;
 using Microsoft.Groove.Api.DataContract;
 using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -20,49 +22,136 @@ namespace GrooveApiSample
 {
     public partial class Sample : Form
     {
-        private IGrooveClient groove;
+        private IGrooveClient _client;
+        private List<Track> _tracks;
+        private List<Playlist> _playlists;
+        private string sessionId;
 
         public Sample()
         {
             InitializeComponent();
+            sessionId = Guid.NewGuid().ToString();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Sample_Load(object sender, EventArgs e)
         {
-            TestAPI();
+            this.Size = new Size(1150, 775);
         }
 
-        private async void TestAPI()
+        private string Serialize(object obj)
         {
-            string clientId = Secret.CLIENTID;
-            string clientSecret = Secret.CLIENTSECRET;
-            string clientSecretEnc = System.Uri.EscapeDataString(clientSecret);
+            return JsonConvert.SerializeObject(JsonConvert.SerializeObject(obj, Formatting.Indented))
+                    .Replace("\\n", Environment.NewLine)
+                    .Replace("\\r", "")
+                    .Replace("\\\"", "\"")
+                    .TrimStart(new char[] { '\"' })
+                    .TrimEnd(new char[] { '\"' });
+        }
+
+        private void onSelectedItemChange(object sender, EventArgs e)
+        {
+            if (sender is ListBox)
+            {
+                ListBox box = (ListBox)sender;
+                OutputTextBox.Text = Serialize(box.SelectedItem);
+            }
+        }
+
+        private void EnableButtons()
+        {
+            GetPlaylistsButton.Enabled = true;
+
+            GetTracksButton.Enabled = true;
+            GetStreamButton.Enabled = true;
+            GetAlbumsButton.Enabled = true;
+        }
+
+        #region Click events
+
+
+        private async void LoginButton_Click(object sender, EventArgs e)
+        {
             UserTokenManager manager = new UserTokenManager();
-            IGrooveClient client = GrooveClientFactory.CreateGrooveClient(Secret.CLIENTID, Secret.CLIENTSECRET, manager);
 
             bool success = await manager.LoginAsync();
-
-            var responseToo = await client.BrowseAsync(MediaNamespace.music, ContentSource.Collection, ItemType.Playlists);
-            if (responseToo.Error != null)
+            if (success)
             {
-                textBox1.AppendText(responseToo.Error.Description);
+                _client = GrooveClientFactory.CreateGrooveClient(Secret.CLIENTID, Secret.CLIENTSECRET, manager);
+                EnableButtons();
             }
             else
             {
-                Playlist first = responseToo.Playlists.Items.First();
-                textBox1.AppendText($"{first.Name} : {first.TrackCount}");
+                // show error that login had a failure
+                OutputTextBox.Text = "Login failure";
             }
         }
 
-        private async void GetDevToken()
+        #region Tracks
+        private async void GetTracksButton_Click(object sender, EventArgs e)
         {
-            string authUrl = "https://login.live.com/accesstoken.srf";
-            var client = new HttpClient();
-            string requestBody = String.Format("grant_type=client_credentials&client_id={0}&client_secret={1}&scope=app.music.xboxlive.com", Secret.CLIENTID, Secret.CLIENTSECRET);
-            HttpContent content = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
-            var response = await client.PostAsync(authUrl, content);
-            var responseString = await response.Content.ReadAsStringAsync();
-            textBox1.AppendText(responseString);
+            ContentResponse response = await _client.BrowseAsync(MediaNamespace.music, ContentSource.Collection, ItemType.Tracks, maxItems: 100);
+            _tracks = response.Tracks.Items;
+            TrackListBox.Items.Clear();
+            _tracks.ForEach(t => TrackListBox.Items.Add(t));
         }
+
+        private async void GetStreamButton_Click(object sender, EventArgs e)
+        {
+            Track track = (Track)TrackListBox.SelectedItem;
+            if (track != null)
+            {
+                StreamResponse response = await _client.StreamAsync(track.Id, sessionId);
+                OutputTextBox.Text = response.Error == null ? response.Url : response.Error.Description;
+            }
+        }
+
+        private async void GetAlbumsButton_Click(object sender, EventArgs e)
+        {
+            Track track = (Track)TrackListBox.SelectedItem;
+            if (track != null)
+            {
+                ContentResponse response = await _client.LookupAsync(track.Id);
+                OutputTextBox.Text = Serialize(response);
+            }
+        }
+
+        #endregion
+
+        #region Playlists
+
+        private async void OnPlaylistSelected(object sender, EventArgs e)
+        {
+            Playlist playlist = (Playlist)PlaylistListBox.SelectedItem;
+            if (playlist != null)
+            {
+                ContentResponse response = await _client.LookupAsync(playlist.Id);
+                OutputTextBox.Text = Serialize(response);
+                PlaylistTrackListBox.Items.Clear();
+                response.Playlists.Items.First().Tracks.Items.ForEach(t => PlaylistTrackListBox.Items.Add(t));
+            }
+        }
+
+        private async void GetPlaylistsButton_Click(object sender, EventArgs e)
+        {
+            ContentResponse response = await _client.BrowseAsync(MediaNamespace.music, ContentSource.Collection, ItemType.Playlists);
+            _playlists = response.Playlists.Items;
+            _playlists.ForEach(p => PlaylistListBox.Items.Add(p));
+        }
+
+        private async void OnPlaylistEntrySelected(object sender, EventArgs e)
+        {
+            Track track = (Track)PlaylistTrackListBox.SelectedItem;
+            if (track != null)
+            {
+                OutputTextBox.Text = Serialize(track);
+                ArtistArtPictureBox.Load(track.GetImageUrl(ArtistArtPictureBox.Size.Width, ArtistArtPictureBox.Size.Height));
+                StreamResponse stream = await _client.StreamAsync(track.Id, sessionId);
+                StreamTextBox.Text = Serialize(stream);
+            }
+        }
+
+        #endregion
+
+        #endregion
     }
 }
