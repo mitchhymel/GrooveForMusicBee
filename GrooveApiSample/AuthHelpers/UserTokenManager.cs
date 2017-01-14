@@ -22,7 +22,9 @@ namespace GrooveApiSample
     {
         private const string OfflineAccessScope = "offline_access";
         private const string GrooveApiScope = "MicrosoftMediaServices.GrooveApiAccess";
-        private const string AuthTokenSettingsKey = "ida:AuthTokenJson";
+        private const string RefreshTokenSettingsKey = "ida:RefreshToken";
+        private const string TokenUri = "https://login.live.com/oauth20_authorize.srf";
+        private const string DesktopRedirectUri = "https://login.live.com/oauth20_desktop.srf";
 
         public AuthToken AuthToken { get; private set; }
         public bool UserIsSignedIn { get; private set; }
@@ -59,7 +61,7 @@ namespace GrooveApiSample
         /// <returns></returns>
         public async Task<string> GetUserAuthorizationHeaderAsync(bool forceRefresh = false)
         {
-            if (AuthToken == null || AuthToken.IsExpired())
+            if (AuthToken == null || AuthToken.IsExpired() || forceRefresh)
             {
                 AuthToken = await GetUserTokenAsync();
             }
@@ -78,45 +80,46 @@ namespace GrooveApiSample
             AuthToken result = null;
 
             // Try to read Auth token from settings
-            string authJson = ConfigurationManager.AppSettings[AuthTokenSettingsKey];
-            if (!String.IsNullOrEmpty(authJson))
+            string refreshToken = ConfigurationManager.AppSettings[RefreshTokenSettingsKey];
+            if (!String.IsNullOrEmpty(refreshToken))
             {
-                try
-                {
-                    result = JsonConvert.DeserializeObject<AuthToken>(authJson);
-                }
-                catch (JsonSerializationException ex)
-                {
-                    // continue
-                    result = null;
-                }
+                // use refresh token to get auth token
+                result = await GetTokenFromRefreshToken(refreshToken);
+            }
+            else
+            {
+                // get auth token from user auth
+                result = await GetTokenFromUserPrompt();
             }
 
-            // start auth form to get token
-            if (result == null && this._authForm == null)
-            {
-                string scopes = $"{GrooveApiScope} {OfflineAccessScope}";
-                string redirectUri = HttpUtility.UrlEncode("https://login.live.com/oauth20_desktop.srf");
-                string startUrl = $"https://login.live.com/oauth20_authorize.srf?client_id={Secret.CLIENTID}&scope={scopes}&response_type=code&redirect_uri={redirectUri}";
-                string endUrl = "https://login.live.com/oauth20_desktop.srf";
-                this._authForm = new AuthForm(startUrl, endUrl);
-                var dialogResult = this._authForm.ShowDialog();
-                if (dialogResult == DialogResult.OK)
-                {
-                    AuthResult authResult = this._authForm.authResult;
-                    CleanupAuthForm();
-                    result = await ExchangeCodeForToken(authResult.AuthorizeCode);
+            return result;
+        }
 
-                    // save to configuration
-                    Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                    configuration.AppSettings.Settings[AuthTokenSettingsKey].Value = JsonConvert.SerializeObject(result);
-                    configuration.Save();
-                    ConfigurationManager.RefreshSection("appSettings");
-                }
-                else
-                {
-                    result = null;
-                }
+        private async Task<AuthToken> GetTokenFromUserPrompt()
+        {
+            AuthToken result = null;
+            // get auth token from user auth
+            string scopes = $"{GrooveApiScope} {OfflineAccessScope}";
+            string redirectUri = HttpUtility.UrlEncode(DesktopRedirectUri);
+            string startUrl = $"{TokenUri}?client_id={Secret.CLIENTID}&scope={scopes}&response_type=code&redirect_uri={redirectUri}";
+            string endUrl = DesktopRedirectUri;
+            this._authForm = new AuthForm(startUrl, endUrl);
+            var dialogResult = this._authForm.ShowDialog();
+            if (dialogResult == DialogResult.OK)
+            {
+                AuthResult authResult = this._authForm.authResult;
+                CleanupAuthForm();
+                result = await ExchangeCodeForToken(authResult.AuthorizeCode);
+
+                // save to configuration
+                Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                configuration.AppSettings.Settings[RefreshTokenSettingsKey].Value = result.RefreshToken;
+                configuration.Save();
+                ConfigurationManager.RefreshSection("appSettings");
+            }
+            else
+            {
+                result = null;
             }
 
             return result;
@@ -134,6 +137,13 @@ namespace GrooveApiSample
             }
         }
 
+
+        private async Task<AuthToken> GetTokenFromRefreshToken(string refreshToken)
+        {
+            string body = $"client_id={Secret.CLIENTID}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&refresh_token={refreshToken}&grant_type=refresh_token";
+            return await PerformPostAsync(body);
+        }
+
         /// <summary>
         /// Helper function to obtain a Groove API user token after obtaining a code from auth
         /// </summary>
@@ -141,9 +151,14 @@ namespace GrooveApiSample
         /// <returns></returns>
         private async Task<AuthToken> ExchangeCodeForToken(string code)
         {
+            string body = $"client_id={Secret.CLIENTID}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&code={code}&grant_type=authorization_code";
+            return await PerformPostAsync(body);
+        }
+
+        private async Task<AuthToken> PerformPostAsync(string body)
+        {
             string tokenUrl = "https://login.live.com/oauth20_token.srf";
             string redirectUri = HttpUtility.UrlEncode("https://login.live.com/oauth20_desktop.srf");
-            string body = $"client_id={Secret.CLIENTID}&redirect_uri={redirectUri}&code={code}&grant_type=authorization_code";
 
             HttpClient client = new HttpClient();
             HttpContent content = new StringContent(body, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
