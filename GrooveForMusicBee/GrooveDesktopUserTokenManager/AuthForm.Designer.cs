@@ -1,4 +1,4 @@
-﻿namespace GrooveApiSample
+﻿namespace GrooveDesktopUserTokenManager
 {
     partial class AuthForm
     {

@@ -4,6 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrooveForMusicBee", "GrooveForMusicBee\GrooveForMusicBee.csproj", "{C997165B-617C-4D74-84D8-93A5434A8293}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5850FDBC-1778-4107-A7DF-C3E331E4BA6E} = {5850FDBC-1778-4107-A7DF-C3E331E4BA6E}
+		{EFC538C3-4EF6-43B4-B49A-152E35563BDA} = {EFC538C3-4EF6-43B4-B49A-152E35563BDA}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrooveApiSample", "GrooveApiSample\GrooveApiSample.csproj", "{B923EDD3-0935-47B3-A27D-86F956BD9B33}"
 EndProject

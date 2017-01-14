@@ -45,14 +45,12 @@ namespace MusicBeePlugin
         {
             if (_pluginWindow != null)
             {
-                _pluginWindow.Focus();
-            }
-            else
-            {
-                _pluginWindow = new SyncPlaylistsWindow(mbApiInterface);
-                _pluginWindow.Show();
+                _pluginWindow.Dispose();
+                _pluginWindow = null;
             }
 
+            _pluginWindow = new SyncPlaylistsWindow(mbApiInterface);
+            _pluginWindow.Show();
         }
 
         public bool Configure(IntPtr panelHandle)

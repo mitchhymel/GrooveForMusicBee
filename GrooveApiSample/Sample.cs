@@ -1,6 +1,7 @@
-﻿using Microsoft.Groove.Api.Client;
+﻿using GrooveDesktopUserTokenManager;
+using GrooveForMusicBee;
+using Microsoft.Groove.Api.Client;
 using Microsoft.Groove.Api.DataContract;
-using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;

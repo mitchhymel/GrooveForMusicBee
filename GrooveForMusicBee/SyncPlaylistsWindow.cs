@@ -1,4 +1,7 @@
-﻿using System;
+﻿using GrooveDesktopUserTokenManager;
+using GrooveForMusicBee;
+using Microsoft.Groove.Api.Client;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -14,6 +17,7 @@ namespace GrooveForMusicBee
     public partial class SyncPlaylistsWindow : Form
     {
         private MusicBeeApiInterface _mbApiInterface;
+        private IGrooveClient _client;
 
         public SyncPlaylistsWindow(MusicBeeApiInterface mbApiInterface)
         {
@@ -63,7 +67,23 @@ namespace GrooveForMusicBee
 
         private async void LoginButton_Click(object sender, EventArgs e)
         {
+            UserTokenManager manager = new UserTokenManager();
+            bool loginSuccess = await manager.LoginAsync();
+            if (loginSuccess)
+            {
+                _client = GrooveClientFactory.CreateGrooveClient(Secret.CLIENTID, Secret.CLIENTSECRET, manager);
 
+                WriteOutputLine("\nSuccessfully logged in.");
+            }
+            else
+            {
+                WriteOutputLine("\nError while logging in");
+            }
+        }
+
+        private void WriteOutputLine(string text)
+        {
+            OutputTextBox.AppendText(text + Environment.NewLine);
         }
     }
 }

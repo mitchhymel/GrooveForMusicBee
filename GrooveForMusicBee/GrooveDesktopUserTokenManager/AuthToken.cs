@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GrooveApiSample
+namespace GrooveDesktopUserTokenManager
 {
     [DataContract]
     public class AuthToken

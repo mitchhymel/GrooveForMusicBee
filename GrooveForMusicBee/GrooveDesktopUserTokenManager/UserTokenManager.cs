@@ -5,26 +5,26 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IdentityModel;
 using System.Net.Http;
 using Mono.Web;
-using Microsoft.Identity.Client;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using System.Configuration;
+using System.Reflection;
 
-namespace GrooveApiSample
+namespace GrooveDesktopUserTokenManager
 {
     public class UserTokenManager : IUserTokenManager
     {
         private const string OfflineAccessScope = "offline_access";
         private const string GrooveApiScope = "MicrosoftMediaServices.GrooveApiAccess";
-        private const string RefreshTokenSettingsKey = "ida:RefreshToken";
+        private const string RefreshTokenSettingsKey = "ida:mb_GrooveForMusicBeeRefreshToken";
         private const string TokenUri = "https://login.live.com/oauth20_authorize.srf";
         private const string DesktopRedirectUri = "https://login.live.com/oauth20_desktop.srf";
+        private const string ClientId = "d4382ba0-6a33-4a49-82b6-aa4a99f7126b";
 
         public AuthToken AuthToken { get; private set; }
         public bool UserIsSignedIn { get; private set; }
@@ -80,7 +80,13 @@ namespace GrooveApiSample
             AuthToken result = null;
 
             // Try to read Auth token from settings
-            string refreshToken = ConfigurationManager.AppSettings[RefreshTokenSettingsKey];
+            string refreshToken = null;
+            Configuration configuration = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
+            if (configuration.AppSettings.Settings.AllKeys.Contains(RefreshTokenSettingsKey))
+            {
+                refreshToken = configuration.AppSettings.Settings[RefreshTokenSettingsKey].Value;
+            }
+
             if (!String.IsNullOrEmpty(refreshToken))
             {
                 // use refresh token to get auth token
@@ -101,7 +107,7 @@ namespace GrooveApiSample
             // get auth token from user auth
             string scopes = $"{GrooveApiScope} {OfflineAccessScope}";
             string redirectUri = HttpUtility.UrlEncode(DesktopRedirectUri);
-            string startUrl = $"{TokenUri}?client_id={Secret.CLIENTID}&scope={scopes}&response_type=code&redirect_uri={redirectUri}";
+            string startUrl = $"{TokenUri}?client_id={ClientId}&scope={scopes}&response_type=code&redirect_uri={redirectUri}";
             string endUrl = DesktopRedirectUri;
             this._authForm = new AuthForm(startUrl, endUrl);
             var dialogResult = this._authForm.ShowDialog();
@@ -112,7 +118,11 @@ namespace GrooveApiSample
                 result = await ExchangeCodeForToken(authResult.AuthorizeCode);
 
                 // save to configuration
-                Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                Configuration configuration = ConfigurationManager.OpenExeConfiguration(Assembly.GetExecutingAssembly().Location);
+                if (!configuration.AppSettings.Settings.AllKeys.Contains(RefreshTokenSettingsKey))
+                {
+                    configuration.AppSettings.Settings.Add(RefreshTokenSettingsKey, "");
+                }
                 configuration.AppSettings.Settings[RefreshTokenSettingsKey].Value = result.RefreshToken;
                 configuration.Save();
                 ConfigurationManager.RefreshSection("appSettings");
@@ -140,7 +150,7 @@ namespace GrooveApiSample
 
         private async Task<AuthToken> GetTokenFromRefreshToken(string refreshToken)
         {
-            string body = $"client_id={Secret.CLIENTID}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&refresh_token={refreshToken}&grant_type=refresh_token";
+            string body = $"client_id={ClientId}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&refresh_token={refreshToken}&grant_type=refresh_token";
             return await PerformPostAsync(body);
         }
 
@@ -151,7 +161,7 @@ namespace GrooveApiSample
         /// <returns></returns>
         private async Task<AuthToken> ExchangeCodeForToken(string code)
         {
-            string body = $"client_id={Secret.CLIENTID}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&code={code}&grant_type=authorization_code";
+            string body = $"client_id={ClientId}&redirect_uri={HttpUtility.UrlEncode(DesktopRedirectUri)}&code={code}&grant_type=authorization_code";
             return await PerformPostAsync(body);
         }
 

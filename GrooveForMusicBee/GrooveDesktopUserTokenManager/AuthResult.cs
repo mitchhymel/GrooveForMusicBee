@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GrooveApiSample
+namespace GrooveDesktopUserTokenManager
 {
     public class AuthResult
     {
-
         public string AuthorizeCode { get; private set; }
         public string ErrorCode { get; private set; }
         public string ErrorDescription { get; private set; }
