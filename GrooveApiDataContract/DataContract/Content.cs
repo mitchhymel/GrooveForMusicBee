@@ -49,5 +49,10 @@ namespace Microsoft.Groove.Api.DataContract
         [DataMember(EmitDefaultValue = false)]
         [JsonConverter(typeof(StringEnumConverter))]
         public ContentSource CompatibleSources { get; set; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
     }
 }

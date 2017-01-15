@@ -81,6 +81,8 @@
     <Compile Include="GrooveDesktopUserTokenManager\AuthResult.cs" />
     <Compile Include="GrooveDesktopUserTokenManager\AuthToken.cs" />
     <Compile Include="GrooveDesktopUserTokenManager\UserTokenManager.cs" />
+    <Compile Include="MusicBeeModels\MusicBeePlaylist.cs" />
+    <Compile Include="MusicBeeModels\MusicBeeTrack.cs" />
     <Compile Include="Plugin\MusicBeeInterface.cs" />
     <Compile Include="Plugin\Secret.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
