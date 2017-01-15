@@ -14,16 +14,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static GrooveForMusicBee.SyncProgressWindow;
 using static MusicBeePlugin.Plugin;
 
 namespace GrooveForMusicBee
 {
     public partial class SyncPlaylistsWindow : Form
     {
+        private bool _loggedIn = false;
         private MusicBeeApiInterface _mbApiInterface;
         private IGrooveClient _client;
-        private bool _loggedIn = false;
-        private List<Track> _collection;
+        private SyncHelper _syncHelper;
+        private SyncProgressWindow _syncProgressWindow = null;
 
         public SyncPlaylistsWindow(MusicBeeApiInterface mbApiInterface)
         {
@@ -108,8 +110,6 @@ namespace GrooveForMusicBee
             GetGroovePlaylists();
 
             // _collection = await GetAllTracks();
-
-            SyncProgressBar.Value = 0;
         }
 
         private async void GetLocalPlaylists()
@@ -158,15 +158,12 @@ namespace GrooveForMusicBee
                     WriteOutputLine($"Error: {response.Error.Description}");
                     keepLooping = false;
                 }
-
-                SyncProgressBar.Value = (100 * collection.Count / response.Tracks.TotalItemCount);
-
             } while (keepLooping);
 
             return collection;
         }
 
-        private void WriteOutputLine(string text)
+        public void WriteOutputLine(string text)
         {
             OutputTextBox.AppendText(text + Environment.NewLine);
         }
@@ -212,129 +209,25 @@ namespace GrooveForMusicBee
         {
             List<Playlist> groovePlaylists = GroovePlaylistCheckListBox.Items.Cast<Playlist>().ToList();
             List<MusicBeePlaylist> playlistsToSync = LocalPlaylistCheckListBox.CheckedItems.Cast<MusicBeePlaylist>().ToList();
-            List<PlaylistAction> playlistActions = new List<PlaylistAction>();
 
-            WriteOutputLine("Attempting to match local songs to Groove...");
-
-            foreach (MusicBeePlaylist playlist in playlistsToSync)
+            this._syncProgressWindow = new SyncProgressWindow(_client, _mbApiInterface, SyncDirection.LocalToGroove, playlistsToSync, groovePlaylists);
+            var dialogResult = this._syncProgressWindow.ShowDialog();
+            if (dialogResult == DialogResult.OK)
             {
-                WriteOutputLine($"Preparing {playlist.Name} for sync");
-
-                // If playlist already exists,
-                // for now, delete playlist and remake completely
-                // eventually, calculate diff
-                Playlist matchingGroovePlaylist = groovePlaylists.Where(p => p.Name == playlist.Name).FirstOrDefault();
-                if (matchingGroovePlaylist != null)
-                {
-
-                    PlaylistAction deletePlaylist = new PlaylistAction()
-                    {
-                        Id = matchingGroovePlaylist.Id,
-                    };
-                    playlistActions.Add(deletePlaylist);
-                }
-
-                // Get list of file paths to tracks in music bee library
-                string[] playlistFiles = null;
-                if (_mbApiInterface.Playlist_QueryFiles(playlist.MusicBeeName))
-                {
-                    bool success = _mbApiInterface.Playlist_QueryFilesEx(playlist.MusicBeeName, ref playlistFiles);
-                    if (!success)
-                    {
-                        WriteOutputLine($"Couldn't find playlist file for: {playlist.Name}");
-                        return;
-                    }
-                }
-                else
-                {
-                    playlistFiles = new string[] { };
-                }
-                
-                // Map the track in music bee to Groove
-                List<TrackAction> tracksToAdd = new List<TrackAction>();
-                foreach (string file in playlistFiles)
-                {
-                    string title = _mbApiInterface.Library_GetFileTag(file, MetaDataType.TrackTitle);
-                    string artist = _mbApiInterface.Library_GetFileTag(file, MetaDataType.Artist);
-
-                    ContentResponse response = await _client.SearchAsync(MediaNamespace.music, HttpUtility.UrlEncode(title), ContentSource.Collection, SearchFilter.Tracks);
-                    if (response.Error == null || response.Error.ErrorCode == Enum.GetName(typeof(ErrorCode), ErrorCode.COLLECTION_INVALID_DATA))
-                    {
-                        TrackAction action = null;
-                        List<Track> tracksFound = response.Tracks.Items.Cast<Track>().ToList();
-                        foreach (Track track in tracksFound)
-                        {
-                            if (track.Name == title
-                                && track.Artists.Where(c => c.Artist.Name == artist).FirstOrDefault() != null)
-                            {
-                                action = new TrackAction()
-                                {
-                                    Action = TrackActionType.Add,
-                                    Id = track.Id
-                                };
-                                tracksToAdd.Add(action);
-                            }
-                        }
-
-                        if (action == null)
-                        {
-                            WriteOutputLine($"Could not match track {artist} - {title}");
-                        }
-                    }
-                    else
-                    {
-                        WriteOutputLine($"Could not match track {artist} - {title}");
-                    }
-                }
-
-                PlaylistAction createPlaylist = new PlaylistAction()
-                {
-                    Name = playlist.Name,
-                    TrackActions = tracksToAdd
-                };
-                playlistActions.Add(createPlaylist);
+                WriteOutputLine("Sync completed successfully!");
+                GetGroovePlaylists();
             }
-
-            WriteOutputLine("Prepared selected playlists for syncing. Sending requests...");
-
-            int totalTrackActions = 0;
-            playlistActions.ForEach( a => 
+            else if (dialogResult == DialogResult.No)
             {
-                if (a.TrackActions != null)
+                foreach (PlaylistActionResponse response in _syncProgressWindow.ErrorResponses)
                 {
-                    totalTrackActions += a.TrackActions.Count;
-                }
-                else
-                {
-                    totalTrackActions++;
-                }
-            });
-
-            int totalTrackActionsSoFar = 0;
-            for (int i = 0; i < playlistActions.Count; i++)
-            {
-                PlaylistAction action = playlistActions[i];
-                PlaylistActionType operation = action.Name == null ? PlaylistActionType.Delete : PlaylistActionType.Create;
-                PlaylistActionResponse response = await _client.PlaylistOperationAsync(MediaNamespace.music, operation, playlistActions[i]);
-                if (response.Error == null)
-                {
-                    if (action.TrackActions != null)
-                    {
-                        totalTrackActionsSoFar += action.TrackActions.Count ;
-                    }
-
-                    SyncProgressBar.Value = (100 * totalTrackActionsSoFar / totalTrackActions);
-                }
-                else
-                {
-                    WriteOutputLine($"Error when syncing: {response.Error.Description}");
-                    return;
+                    WriteOutputLine($"Failed to sync '{response.PlaylistActionResult.Name}' with error '{response.Error.Description}'");
                 }
             }
-
-            SyncProgressBar.Value = 0;
-            WriteOutputLine("Sync complete!");
-            GetGroovePlaylists();
+            else
+            {
+                WriteOutputLine("Something went wrong...");
+            }
         }
 
         private async void SyncFromGroove()

@@ -35,7 +35,6 @@
             this.LocalPlaylistCheckBox = new System.Windows.Forms.CheckBox();
             this.GroovePlaylistsLabel = new System.Windows.Forms.Label();
             this.LocalPlaylistsLabel = new System.Windows.Forms.Label();
-            this.SyncProgressBar = new System.Windows.Forms.ProgressBar();
             this.ToGrooveRadioButton = new System.Windows.Forms.RadioButton();
             this.FromGrooveRadioButton = new System.Windows.Forms.RadioButton();
             this.SyncButton = new System.Windows.Forms.Button();
@@ -120,13 +119,6 @@
             this.LocalPlaylistsLabel.TabIndex = 1;
             this.LocalPlaylistsLabel.Text = "Local playlists";
             // 
-            // SyncProgressBar
-            // 
-            this.SyncProgressBar.Location = new System.Drawing.Point(13, 1081);
-            this.SyncProgressBar.Name = "SyncProgressBar";
-            this.SyncProgressBar.Size = new System.Drawing.Size(1107, 23);
-            this.SyncProgressBar.TabIndex = 3;
-            // 
             // ToGrooveRadioButton
             // 
             this.ToGrooveRadioButton.AutoSize = true;
@@ -194,10 +186,9 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1132, 1116);
+            this.ClientSize = new System.Drawing.Size(1132, 1088);
             this.Controls.Add(this.RadioButtonGroupBox);
             this.Controls.Add(this.SyncButton);
-            this.Controls.Add(this.SyncProgressBar);
             this.Controls.Add(this.SyncGroupBox);
             this.Controls.Add(this.OutputTextBox);
             this.Controls.Add(this.LoginButton);
@@ -216,7 +207,6 @@
         private System.Windows.Forms.Button LoginButton;
         private System.Windows.Forms.RichTextBox OutputTextBox;
         private System.Windows.Forms.GroupBox SyncGroupBox;
-        private System.Windows.Forms.ProgressBar SyncProgressBar;
         private System.Windows.Forms.RadioButton ToGrooveRadioButton;
         private System.Windows.Forms.RadioButton FromGrooveRadioButton;
         private System.Windows.Forms.Button SyncButton;

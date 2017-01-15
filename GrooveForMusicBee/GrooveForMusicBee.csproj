@@ -85,6 +85,7 @@
     <Compile Include="MusicBeeModels\MusicBeeTrack.cs" />
     <Compile Include="Plugin\MusicBeeInterface.cs" />
     <Compile Include="Plugin\Secret.cs" />
+    <Compile Include="Plugin\SyncHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Plugin\GroovePlaylistSyncPlugin.cs" />
     <Compile Include="SyncPlaylistsWindow.cs">
@@ -93,6 +94,12 @@
     <Compile Include="SyncPlaylistsWindow.Designer.cs">
       <DependentUpon>SyncPlaylistsWindow.cs</DependentUpon>
     </Compile>
+    <Compile Include="SyncProgressWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SyncProgressWindow.Designer.cs">
+      <DependentUpon>SyncProgressWindow.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="GrooveDesktopUserTokenManager\AuthForm.resx">
@@ -100,6 +107,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SyncPlaylistsWindow.resx">
       <DependentUpon>SyncPlaylistsWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SyncProgressWindow.resx">
+      <DependentUpon>SyncProgressWindow.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
